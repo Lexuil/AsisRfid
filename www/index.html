@@ -1,0 +1,84 @@
+<!DOCTYPE html>
+
+<html lang=es>
+	<style>
+	table {
+	    border-collapse: collapse;
+	    width: 100%;
+	}
+
+	th, td {
+	    text-align: left;
+	    padding: 8px;
+	}
+
+	tr:nth-child(even){background-color: #f2f2f2}
+
+	th {
+	    background-color: #4CAF50;
+	    color: white;
+	}
+	</style>
+
+	<head>
+		<meta charset="UTF-8" />
+		<title>Asistencia</title>
+		<link rel="stylesheet" href="style.css" />
+	</head>
+
+	<body>
+
+		<h1>Asistencia a la mierda Movistas</h1>
+		<br />
+		<hr />
+		<br />
+		<div style="text-align: center">
+			<img src="excel.png" />
+			<p>
+				Descargar « <a href="registro.csv">Asistencia</a> »
+			</p>
+		</div>
+
+
+	<br />
+	<hr />
+	<br />
+
+	<div style="text-align: center" id="demo">
+	<h2>Mostrar en tabla</h2>
+	<button type="button" onclick="loadDoc()">Mostrar</button>
+	</div>
+
+	<script>
+		function loadDoc() {
+			var txtFile = new XMLHttpRequest();
+			txtFile.onload = function() {
+			    allText = txtFile.responseText;
+			    allTextLines = allText.split(/\r;|;/);
+
+			    table = "<table><tr><th>Fecha</th><th>Hora</th><th>Ayudante</th><th>asunto</th></tr><tr>"
+
+			    for(var i = 0; i < allTextLines.length-1; i++) {
+			    	if((i%4)==3){
+			    		if(i == allTextLines.length-1){
+			    			table += "<td>" + allTextLines[i] + "</td></tr></table>"
+			    		}else{
+			    			table += "<td>" + allTextLines[i] + "</td></tr><tr>"
+			    		}
+				    }else{
+				    	table += "<td>" + allTextLines[i] + "</td>"
+				    }
+			    }
+
+			    document.body.innerHTML += table;
+
+			}
+
+			txtFile.open("get", "registro.csv", true);
+			txtFile.send();
+		}
+	</script>
+
+	</body>
+
+</html>

@@ -323,16 +323,86 @@ def reg_nombre():
 
 			put_lcd("nombre:",nombre + Caracteres[x])
 
+def conf_manual_time():
+	fecha = [2018,7,1]
+	hora = [12,30]
+	put_lcd("Conf. Fecha:",str(fecha[0])+"/"+str(fecha[1])+"/"+str(fecha[2]))
 
-connectWIFI()
+	aux1 = 0
+	aux2 = 0
 
-getdate()
-date = showdate()
-print(date[0])
-print(date[1],"\n")
+	while True:
+		time.sleep_ms(500)
+		opc = touchpad_read()
+
+		if opc == 0:
+			if aux1 < 2:
+				aux1 += 1
+			else:
+				break
+		elif opc == 1:
+			if fecha[aux1] > 0:
+				fecha[aux1] -= 1
+			put_lcd("Conf. Fecha:",str(fecha[0])+"/"+str(fecha[1])+"/"+str(fecha[2]))
+		elif opc == 2:
+			fecha[aux1] += 1
+			put_lcd("Conf. Fecha:",str(fecha[0])+"/"+str(fecha[1])+"/"+str(fecha[2]))
+
+	put_lcd("Conf. Hora:",str(hora[0])+":"+str(hora[1]))
+
+	while True:
+		time.sleep_ms(500)
+		opc = touchpad_read()
+
+		if opc == 0:
+			if aux2 < 1:
+				aux2 += 1
+			else:
+				break
+		elif opc == 1:
+			if hora[aux2] > 0:
+				hora[aux2] -= 1
+			put_lcd("Conf. Hora:",str(hora[0])+":"+str(hora[1]))
+		elif opc == 2:
+			if hora[aux2] < 59:
+				hora[aux2] += 1
+			put_lcd("Conf. Hora:",str(hora[0])+":"+str(hora[1]))
+
+	date = tuple(fecha) + (0,) + tuple(hora) + (0,0,)
+	rtc.datetime(date)
 
 
-#server.servinit()
+modo = ["Conectado","Desconectado"]
+mod = 0
+
+while True:
+	put_lcd("Selecione modo:",modo[mod])
+
+	time.sleep_ms(500)
+	opc = touchpad_read()
+
+	if opc == 0 and mod == 0:
+		connectWIFI()
+
+		getdate()
+		date = showdate()
+		print(date[0])
+		print(date[1],"\n")
+
+		#server.servinit()
+		break
+	elif opc == 0 and mod == 1:
+		conf_manual_time()
+		break
+	elif opc == 1 or opc == 2:
+		if mod == 0:
+			mod = 1
+		else:
+			mod = 0
+
+
+
+		
 
 lcd_date()
 

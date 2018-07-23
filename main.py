@@ -303,6 +303,7 @@ def reg_nombre():
 				rfid.write_name(nombre)
 
 				put_lcd("Ok",nombre)
+				time.sleep(2)
 				break
 
 		elif opc == 1:

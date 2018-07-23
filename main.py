@@ -280,7 +280,7 @@ def reg_nombre():
 	nombre = ""
 	flag = 0
 
-	put_lcd("nombre:",nombre + Caracteres[x])
+	put_lcd("Nombre:",nombre + Caracteres[x])
 
 	while True:
 		opc = touchpad_read()
@@ -390,7 +390,7 @@ while True:
 		print(date[0])
 		print(date[1],"\n")
 
-		#server.servinit()
+		server.servinit()
 		break
 	elif opc == 0 and mod == 1:
 		conf_manual_time()

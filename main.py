@@ -2,7 +2,6 @@ import os
 import network
 import time
 import utime
-#import keypad
 from machine import RTC
 from machine import Pin
 from machine import TouchPad
@@ -19,6 +18,7 @@ from lcd import HD44780
 import server
 import asistencia
 import rfid
+import keypad
 
 # Fecha
 NTP_DELTA = 3155691600  #(colombia)
@@ -36,11 +36,12 @@ lcd.PINS = [32, 33, 16, 17, 4, 21]
 lcd.init()
 
 # TouchPad
-Touch = [TouchPad(Pin(13)),TouchPad(Pin(12)),TouchPad(Pin(14)),TouchPad(Pin(27))]
+#Touch = [TouchPad(Pin(13)),TouchPad(Pin(12)),TouchPad(Pin(14)),TouchPad(Pin(27))]
 led = Pin(5, mode=Pin.OUT)
 
 # Caracteres
-Caracteres = 'abcdefghijklmnopqrstuvwxyzABCDEFGHIJKLMNOPQRSTUVWXYZ!"#$%&()*+,-./:;?@[]^_`{|}~0123456789'
+Caracteres_min = '12abc3def4ghi5jkl6mno7pqrs8tuv9wxyz0 _:;!"#$%&()*+,-./?@[]^`{|}~'
+Caracteres_may = '12ABC3DEF4GHI5JKL6MNO7PQRS8TUV9WXYZ0 _:;!"#$%&()*+,-./?@[]^`{|}~'
 
 def connectWIFI():
 	
@@ -59,9 +60,9 @@ def connectWIFI():
 	while True:
 		put_lcd("Seleciona red:",SSIDandPSWD[sel*2])
 		time.sleep_ms(500)
-		opc = touchpad_read()
+		opc = keypad.getkey()
 
-		if opc == 0:
+		if opc == "A":
 			station = network.WLAN(network.STA_IF)
 			station.active(True)
 
@@ -75,17 +76,17 @@ def connectWIFI():
 				put_lcd("Conectado"," ")
 				time.sleep(3)
 				break
-		elif opc == 1:
+		elif opc == "*":
 			if sel == 0:
 				sel = len(SSIDandPSWD)//2-1
 			else:
 				sel -= 1
-		elif opc == 2:
+		elif opc == "#":
 			if sel == (len(SSIDandPSWD)/2)-1:
 				sel = 0
 			else:
 				sel += 1
-		elif opc == 3:
+		elif opc == "D":
 			new_wifi()
 			break
 			
@@ -103,84 +104,44 @@ def new_wifi():
 	while True:
 		put_lcd("Sel. nueva red:",redes[sel1])
 		time.sleep_ms(500)
-		opc = touchpad_read()
+		opc = keypad.getkey()
 
-		if opc == 0:
-			z = 0
-			Contraseña = ""
-			flag = 0
+		if opc == "A":
+			Contraseña = put_let("Contasena:")
 
-			put_lcd("Contraseña:",Contraseña + Caracteres[z])
+			station = network.WLAN(network.STA_IF)
+			station.active(True)
 
-			while True:
-				opc = touchpad_read()
-				time.sleep_ms(200)
+			station.connect(redes[sel1],Contraseña)
+			put_lcd("Conectando a...",redes[sel1])
 
-				if opc == 3:
-					break
-				elif opc == 0:
-					if flag == 0:
-						if len(Contraseña) < 14:
-							time.sleep(1)
-							flag = 1
-							Contraseña += Caracteres[z]
-							put_lcd("Contraseña:",Contraseña + Caracteres[z])
-						else:
-							put_lcd("Error:","Max. caracteres")
-					else:
-						station = network.WLAN(network.STA_IF)
-						station.active(True)
+			print("\n\n********conectando a ",redes[sel1],"...*********\n\n")
+			utime.sleep(5)
 
-						station.connect(redes[sel1],Contraseña)
-						put_lcd("Conectando a...",redes[sel1])
+			if station.isconnected():
+				put_lcd("Conectado"," ")
 
-						print("\n\n********conectando a ",redes[sel1],"...*********\n\n")
-						utime.sleep(5)
+				f = open("Wifi.txt","a")
+				f.write(redes[sel1])
+				f.write("\n")
+				f.write(Contraseña)
+				f.write("\n")
+				f.close()
 
-						if station.isconnected():
-							put_lcd("Conectado"," ")
+				time.sleep(3)
+				break
 
-							f = open("Wifi.txt","a")
-							f.write(redes[sel1])
-							f.write("\n")
-							f.write(Contraseña)
-							f.write("\n")
-							f.close()
-
-							time.sleep(3)
-							break
-
-				elif opc == 1:
-					flag = 0
-					if z == 88:
-						z = 0
-					else:
-						z += 1
-
-					put_lcd("Contraseña:",Contraseña + Caracteres[z])
-
-				elif opc == 2:
-					flag = 0
-					if z == 0:
-						z = 88
-					else:
-						z -= 1
-
-					put_lcd("Contraseña:",Contraseña + Caracteres[z])
-
-			break
-
-		elif opc == 1:
+		elif opc == "*":
 			if sel1 == 0:
 				sel1 = len(redes)-1
 			else:
 				sel1 -= 1
-		elif opc == 2:
+		elif opc == "#":
 			if sel1 == len(redes)-1:
 				sel1 = 0
 			else:
 				sel1 += 1
-		elif opc == 3:
+		elif opc == "D":
 			connectWIFI()
 
 def getdate():
@@ -220,54 +181,50 @@ def showdate():
 
 def lcd_date():
 
-	time.sleep(1)
+	time.sleep_ms(200)
 
 	while True:
 		date = showdate()
 		put_lcd(date[0][0][7:17],date[1][0][6:14])
 
-		# key = keypad.getkey_()
-		# if key == "D":
-		# 	break
-
-		key = touchpad_read_()
-		if key == 3:
+		key = keypad.getkey_()
+		if key == "D":
 			break
 
-def touchpad_read_(timeout = 1000):
+# def touchpad_read_(timeout = 1000):
 
-	timeoutaux = time.ticks_ms()
+# 	timeoutaux = time.ticks_ms()
 
-	while True:
+# 	while True:
 
-		if time.ticks_ms() > timeoutaux + timeout:
-			break
+# 		if time.ticks_ms() > timeoutaux + timeout:
+# 			break
 		
-		y = 0
+# 		y = 0
 
-		for x in Touch:
-			if x.read() < 400:
-				led.value(1)
-				time.sleep_ms(50)
-				led.value(0)
-				return y
+# 		for x in Touch:
+# 			if x.read() < 400:
+# 				led.value(1)
+# 				time.sleep_ms(50)
+# 				led.value(0)
+# 				return y
 
-			y += 1
+# 			y += 1
 
-def touchpad_read():
+# def touchpad_read():
 
-	while True:
+# 	while True:
 		
-		y = 0
+# 		y = 0
 
-		for x in Touch:
-			if x.read() < 400:
-				led.value(1)
-				time.sleep_ms(50)
-				led.value(0)
-				return y
+# 		for x in Touch:
+# 			if x.read() < 400:
+# 				led.value(1)
+# 				time.sleep_ms(50)
+# 				led.value(0)
+# 				return y
 
-			y += 1
+# 			y += 1
 
 def put_lcd(a,b):
 	lcd.set_line(0)
@@ -283,15 +240,15 @@ def reg_nombre():
 	put_lcd("Nombre:",nombre + Caracteres[x])
 
 	while True:
-		opc = touchpad_read()
+		opc = keypad.getkey()
 		time.sleep_ms(200)
 
-		if opc == 3:
+		if opc == "D":
 			break
-		elif opc == 0:
+		elif opc == "A":
 			if flag == 0:
 				if len(nombre) < 14:
-					time.sleep(1)
+					time.sleep_ms(200)
 					flag = 1
 					nombre += Caracteres[x]
 					put_lcd("Nombre:",nombre + Caracteres[x])
@@ -306,7 +263,7 @@ def reg_nombre():
 				time.sleep(2)
 				break
 
-		elif opc == 1:
+		elif opc == "#":
 			flag = 0
 			if x == 88:
 				x = 0
@@ -315,7 +272,7 @@ def reg_nombre():
 
 			put_lcd("nombre:",nombre + Caracteres[x])
 
-		elif opc == 2:
+		elif opc == "*":
 			flag = 0
 			if x == 0:
 				x = 88
@@ -334,18 +291,18 @@ def conf_manual_time():
 
 	while True:
 		time.sleep_ms(500)
-		opc = touchpad_read()
+		opc = keypad.getkey()
 
-		if opc == 0:
+		if opc == "A":
 			if aux1 < 2:
 				aux1 += 1
 			else:
 				break
-		elif opc == 1:
+		elif opc == "*":
 			if fecha[aux1] > 0:
 				fecha[aux1] -= 1
 			put_lcd("Conf. Fecha:",str(fecha[0])+"/"+str(fecha[1])+"/"+str(fecha[2]))
-		elif opc == 2:
+		elif opc == "#":
 			fecha[aux1] += 1
 			put_lcd("Conf. Fecha:",str(fecha[0])+"/"+str(fecha[1])+"/"+str(fecha[2]))
 
@@ -353,24 +310,113 @@ def conf_manual_time():
 
 	while True:
 		time.sleep_ms(500)
-		opc = touchpad_read()
+		opc = keypad.getkey()
 
-		if opc == 0:
+		if opc == "A":
 			if aux2 < 1:
 				aux2 += 1
 			else:
 				break
-		elif opc == 1:
+		elif opc == "*":
 			if hora[aux2] > 0:
 				hora[aux2] -= 1
 			put_lcd("Conf. Hora:",str(hora[0])+":"+str(hora[1]))
-		elif opc == 2:
+		elif opc == "#":
 			if hora[aux2] < 59:
 				hora[aux2] += 1
 			put_lcd("Conf. Hora:",str(hora[0])+":"+str(hora[1]))
 
 	date = tuple(fecha) + (0,) + tuple(hora) + (0,0,)
 	rtc.datetime(date)
+
+def put_let(a):
+	z = 0
+	Caracteres = Caracteres_min
+	data = ""
+	flag = 0
+
+	put_lcd(a,data + Caracteres[z])
+
+	while True:
+		time.sleep_ms(200)
+		opc = keypad.getkey()
+
+		if opc == "#":
+			if flag == 0:
+				Caracteres = Caracteres_may
+				flag = 1
+			else:
+				Caracteres = Caracteres_min
+				flag = 0
+			put_lcd(a,data + Caracteres[z])
+		elif opc == "D":
+			break
+		elif opc == "A":
+			put_lcd("Ok",data)
+			return data
+		elif opc == "B":
+			data += Caracteres[z]
+			put_lcd(a,data + Caracteres[z])
+		elif opc == "C":
+			data = data[:len(data)-1]
+			put_lcd(a,data + Caracteres[z])
+		elif opc == "1":
+			z = 0
+			put_lcd(a,data + Caracteres[z])
+		elif opc == "2":
+			if 0 < z < 4:
+				z += 1
+			else:
+				z = 1
+			put_lcd(a,data + Caracteres[z])
+		elif opc == "3":
+			if 4 < z < 8:
+				z += 1
+			else:
+				z = 5
+			put_lcd(a,data + Caracteres[z])
+		elif opc == "4":
+			if 8 < z < 12:
+				z += 1
+			else:
+				z = 9
+			put_lcd(a,data + Caracteres[z])
+		elif opc == "5":
+			if 12 < z < 16:
+				z += 1
+			else:
+				z = 13
+			put_lcd(a,data + Caracteres[z])
+		elif opc == "6":
+			if 16 < z < 20:
+				z += 1
+			else:
+				z = 17
+			put_lcd(a,data + Caracteres[z])
+		elif opc == "7":
+			if 20 < z < 25:
+				z += 1
+			else:
+				z = 21
+			put_lcd(a,data + Caracteres[z])
+		elif opc == "8":
+			if 25 < z < 29:
+				z += 1
+			else:
+				z = 26
+			put_lcd(a,data + Caracteres[z])
+		elif opc == "9":
+			if 29 < z < 34:
+				z += 1
+			else:
+				z = 30
+			put_lcd(a,data + Caracteres[z])
+		elif opc == "0":
+			if 34 < z < 63:
+				z += 1
+			else:
+				z = 35
+			put_lcd(a,data + Caracteres[z])
 
 
 modo = ["Conectado","Desconectado"]
@@ -380,9 +426,9 @@ while True:
 	put_lcd("Selecione modo:",modo[mod])
 
 	time.sleep_ms(500)
-	opc = touchpad_read()
+	opc = keypad.getkey()
 
-	if opc == 0 and mod == 0:
+	if opc == "A" and mod == 0:
 		connectWIFI()
 
 		getdate()
@@ -392,109 +438,110 @@ while True:
 
 		server.servinit()
 		break
-	elif opc == 0 and mod == 1:
+	elif opc == "A" and mod == 1:
 		conf_manual_time()
 		break
-	elif opc == 1 or opc == 2:
+	elif opc == "*" or opc == "#":
 		if mod == 0:
 			mod = 1
 		else:
 			mod = 0
 
 
-
-		
-
 lcd_date()
 
 while True:
 
-	time.sleep(1)
+	time.sleep_ms(200)
 
-	put_lcd("1: Ingreso","2: Salida")
+	put_lcd("B: Ingreso","C: Salida")
 
-	opc = touchpad_read()
+	opc = keypad.getkey()
 	print(opc)
 
-	if opc == 0:
+	if opc == "A":
 		pantalla = 0
-		time.sleep(1)
+		time.sleep_ms(200)
 		while True:
 
 			if pantalla == 0:
 				put_lcd("Leer nombre","de la tarjeta")
-				opc = touchpad_read()
-				time.sleep(1)
-				if opc == 0:
+				opc = keypad.getkey()
+				time.sleep_ms(200)
+				if opc == "A":
 					put_lcd("Ponga la","tarjeta")
 					name = rfid.read_name()
 					put_lcd("Nombre:",name)
 					time.sleep(2)
-				elif opc == 1:
+				elif opc == "*":
 					pantalla = 3
-				elif opc == 2:
+				elif opc == "#":
 					pantalla += 1
-				elif opc == 3:
+				elif opc == "D":
 					break
 
 			elif pantalla == 1:
 				put_lcd("Registrar","Nueva tarjeta")
-				opc = touchpad_read()
-				time.sleep(1)
-				if opc == 0:
-					reg_nombre()
-				elif opc == 1:
+				opc = keypad.getkey()
+				time.sleep_ms(200)
+				if opc == "A":
+					nombre = put_let("Nombre:")
+					put_lcd("Ponga la","tarjeta")
+					rfid.write_name(nombre)
+					put_lcd("Ok",nombre)
+					time.sleep(2)
+				elif opc == "*":
 					pantalla -= 1
-				elif opc == 2:
+				elif opc == "#":
 					pantalla += 1
-				elif opc == 3:
+				elif opc == "#":
 					break
 
 			if pantalla == 2:
 				put_lcd("Eliminar datos","de asistencia")
-				opc = touchpad_read()
-				time.sleep(1)
-				if opc == 0:
+				opc = keypad.getkey()
+				time.sleep_ms(200)
+				if opc == "A":
 					put_lcd("Eliminando","espere...")
 					os.remove("www/registro.csv")
 					f = open('www/registro.csv','a')
 					f.close()
-					time.sleep(1)
-				elif opc == 1:
+					time.sleep_ms(200)
+				elif opc == "*":
 					pantalla -= 1
-				elif opc == 2:
+				elif opc == "#":
 					pantalla += 1
-				elif opc == 3:
+				elif opc == "D":
 					break
 
 			if pantalla == 3:
 				put_lcd("Ver","IP")
-				opc = touchpad_read()
-				time.sleep(1)
-				if opc == 0:
+				opc = keypad.getkey()
+				time.sleep_ms(200)
+				if opc == "A":
 					station = network.WLAN(network.STA_IF)
 					put_lcd("IP:",str(station.ifconfig()[0]))
 					time.sleep(5)
-				elif opc == 1:
+				elif opc == "*":
 					pantalla -= 1
-				elif opc == 2:
+				elif opc == "#":
 					pantalla = 0
-				elif opc == 3:
+				elif opc == "D":
 					break
 
-	elif opc == 1:
+	elif opc == "B":
 		put_lcd("Coloca la","tarjeta")
 		name = asistencia.ingreso()
 		put_lcd("Hola",name)
-		time.sleep(1)
+		time.sleep_ms(200)
 
-	elif opc == 2:
+	elif opc == "C":
 		put_lcd("Coloca la","tarjeta")
 		name = asistencia.salida()
 		put_lcd("Chao",name)
-		time.sleep(1)
+		time.sleep_ms(200)
 
-	elif opc == 3:
+	elif opc == "D":
 		lcd_date()
 
 
